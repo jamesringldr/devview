@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DeView</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='8' y='2' width='16' height='28' rx='4' fill='%232563eb'/%3E%3Crect x='13' y='5' width='6' height='2' rx='1' fill='white'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <aside class="panel">
+      <header class="brand"><span class="logo"></span>DeView</header>
+
+      <section>
+        <h2>Dev server</h2>
+        <form id="targetForm" class="inline">
+          <input id="target" spellcheck="false" autocomplete="off" placeholder="http://localhost:5173" />
+          <button>Connect</button>
+        </form>
+        <button type="button" id="scan" class="ghost">Find running servers</button>
+        <div id="found" class="chips"></div>
+      </section>
+
+      <section>
+        <h2>Device</h2>
+        <select id="device"></select>
+        <div id="customSize" class="inline" hidden>
+          <input type="number" id="customW" min="200" max="3840" /> <span class="muted">×</span>
+          <input type="number" id="customH" min="200" max="3000" />
+        </div>
+        <div id="browserGroup">
+          <h2>Browser</h2>
+          <div id="browser" class="seg wrap"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Appearance <kbd>D</kbd></h2>
+        <div id="theme" class="seg">
+          <button data-v="light">Light</button>
+          <button data-v="dark">Dark</button>
+          <button data-v="system">System</button>
+        </div>
+      </section>
+
+      <section id="kbSection">
+        <h2>Keyboard <kbd>K</kbd></h2>
+        <select id="kbMode"></select>
+        <div id="kbBehavior" class="seg">
+          <button data-v="overlay" title="iOS Safari and Android Chrome default: keyboard covers the page, visualViewport shrinks">Overlays page</button>
+          <button data-v="resize" title="interactive-widget=resizes-content: the layout viewport shrinks">Resizes page</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Zoom</h2>
+        <div id="zoom" class="seg">
+          <button data-v="fit">Fit</button>
+          <button data-v="1">100%</button>
+          <button data-v="0.75">75%</button>
+          <button data-v="0.5">50%</button>
+        </div>
+      </section>
+
+      <div class="notes" id="notes"></div>
+      <footer class="muted"><kbd>R</kbd> reload · <kbd>[</kbd> <kbd>]</kbd> switch device</footer>
+    </aside>
+
+    <main class="stage">
+      <div class="topbar">
+        <button id="back" class="icon" title="Back">‹</button>
+        <button id="fwd" class="icon" title="Forward">›</button>
+        <button id="reload" class="icon" title="Reload (R)">↻</button>
+        <form id="pathForm" class="address">
+          <span id="origin" class="muted"></span>
+          <input id="path" spellcheck="false" autocomplete="off" />
+        </form>
+        <a id="openTab" class="icon" target="_blank" rel="noopener" title="Open dev server in a new tab">↗</a>
+      </div>
+
+      <div class="canvas" id="canvas">
+        <div class="scaler" id="scaler">
+          <div class="device" id="deviceEl">
+            <div class="screen" id="screen">
+              <div class="viewport" id="viewport"><iframe id="frame" title="App preview"></iframe></div>
+              <div class="chrome chrome-top" id="chromeTop"></div>
+              <div class="chrome chrome-bottom" id="chromeBottom"></div>
+              <div class="statusbar" id="statusbar"></div>
+              <div class="cutout" id="cutout"></div>
+              <div class="kb" id="keyboard"></div>
+              <div class="home-indicator" id="homeIndicator"></div>
+            </div>
+            <div class="home-button"></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption muted" id="caption"></div>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "deview",
+  "version": "0.1.0",
+  "description": "Preview local dev builds inside device frames, with browser chrome, keyboards, and light/dark forcing.",
+  "type": "module",
+  "bin": {
+    "deview": "server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
