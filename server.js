@@ -337,10 +337,33 @@ proxy.on('upgrade', (req, socket, head) => {
   socket.on('error', close);
 });
 
+const SHELL_URL = `http://localhost:${SHELL_PORT}`;
+const openShell = () => OPEN && spawn('open', [SHELL_URL], { stdio: 'ignore', detached: true }).unref();
+
+// Port taken: if it's another DeView, reuse it (switching target if one was given) instead of crashing.
+async function onListenError(err) {
+  if (err.code !== 'EADDRINUSE') throw err;
+  try {
+    const running = await fetch(`${SHELL_URL}/api/state`, state.target ? { method: 'POST', body: JSON.stringify({ target: state.target }) } : {}).then((r) => r.json());
+    if (!running.proxyPort) throw new Error();
+    console.log(`\n  DeView is already running at ${SHELL_URL}${state.target ? ` — switched to ${state.target}` : ''}\n`);
+    openShell();
+    process.exit(0);
+  } catch {
+    console.error(`\n  Port ${err.port} is in use by another app. Try: node server.js --port ${SHELL_PORT + 10}\n`);
+    process.exit(1);
+  }
+}
+shell.on('error', onListenError);
+proxy.on('error', (err) => {
+  if (err.code !== 'EADDRINUSE') throw err;
+  console.error(`\n  Proxy port ${PROXY_PORT} is in use by another app. Try: node server.js --port ${SHELL_PORT + 10}\n`);
+  process.exit(1);
+});
+
 shell.listen(SHELL_PORT, () => {
   proxy.listen(PROXY_PORT, () => {
-    const url = `http://localhost:${SHELL_PORT}`;
-    console.log(`\n  DeView  ${url}\n  proxy   http://localhost:${PROXY_PORT} → ${state.target || '(pick a server in the browser)'}\n`);
-    if (OPEN) spawn('open', [url], { stdio: 'ignore', detached: true }).unref();
+    console.log(`\n  DeView  ${SHELL_URL}\n  proxy   http://localhost:${PROXY_PORT} → ${state.target || '(pick a server in the browser)'}\n`);
+    openShell();
   });
 });
