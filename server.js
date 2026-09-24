@@ -5,7 +5,8 @@
 //   proxy  http://localhost:4401   your dev server, with the DeView client injected into HTML
 //
 // Usage: node server.js [target] [--port 4400] [--open]
-//   target: a URL (http://localhost:3000) or just a port (3000). Default http://localhost:5173.
+//   target: a URL (http://localhost:3000) or just a port (3000).
+//   Without a target, the shell opens a picker listing local servers.
 
 import http from 'node:http';
 import https from 'node:https';
@@ -14,7 +15,9 @@ import tls from 'node:tls';
 import zlib from 'node:zlib';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, execFile } from 'node:child_process';
+import os from 'node:os';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -29,6 +32,7 @@ const flag = (name) => {
 const SHELL_PORT = Number(flag('--port') || process.env.DEVIEW_PORT || 4400);
 const PROXY_PORT = SHELL_PORT + 1;
 const OPEN = args.includes('--open') && args.splice(args.indexOf('--open'), 1);
+// Fallback when lsof is unavailable.
 const SCAN_PORTS = [3000, 3001, 3002, 4173, 4200, 4321, 5000, 5173, 5174, 5175, 6006, 8000, 8080, 8081, 8888, 19006];
 
 function normalizeTarget(t) {
@@ -42,7 +46,7 @@ function normalizeTarget(t) {
 // Shared state. The shell POSTs here; the proxy reads it when injecting into HTML
 // and when rewriting request headers (user agent).
 const state = {
-  target: normalizeTarget(args[0] || process.env.DEVIEW_TARGET) || 'http://localhost:5173',
+  target: normalizeTarget(args[0] || process.env.DEVIEW_TARGET), // null → shell shows the picker
   config: {
     theme: 'system', // 'light' | 'dark' | 'system'
     ua: null,
@@ -98,6 +102,56 @@ function probe(port) {
   });
 }
 
+const run = (cmd, argv) => promisify(execFile)(cmd, argv).catch((e) => ({ stdout: e.stdout || '' })); // lsof exits 1 on partial results
+
+// Every listening TCP port → { port, pid, command }.
+async function listeners() {
+  const { stdout } = await run('lsof', ['-nP', '-iTCP', '-sTCP:LISTEN', '-Fpcn']);
+  const byPort = new Map();
+  let pid, command;
+  for (const line of stdout.split('\n')) {
+    const val = line.slice(1);
+    if (line[0] === 'p') pid = Number(val);
+    else if (line[0] === 'c') command = val;
+    else if (line[0] === 'n') {
+      const port = Number(val.slice(val.lastIndexOf(':') + 1));
+      if (port && !byPort.has(port)) byPort.set(port, { port, pid, command });
+    }
+  }
+  if (!byPort.size) throw new Error('lsof unavailable');
+  return [...byPort.values()];
+}
+
+// pid → working directory (the project folder the dev server was started from)
+async function workingDirs(pids) {
+  const dirs = new Map();
+  if (!pids.length) return dirs;
+  const { stdout } = await run('lsof', ['-a', '-d', 'cwd', '-Fpn', '-p', pids.join(',')]);
+  let pid;
+  for (const line of stdout.split('\n')) {
+    if (line[0] === 'p') pid = Number(line.slice(1));
+    else if (line[0] === 'n') dirs.set(pid, line.slice(1));
+  }
+  return dirs;
+}
+
+// Local servers that answer with an HTML page, with the folder they run from.
+async function scanServers() {
+  const list = (await listeners().catch(() => SCAN_PORTS.map((port) => ({ port })))).filter((l) => l.port !== SHELL_PORT && l.port !== PROXY_PORT);
+  const pages = (await Promise.all(list.map(async (l) => ({ ...l, ...(await probe(l.port)) })))).filter((s) => s.url);
+  const dirs = await workingDirs([...new Set(pages.map((s) => s.pid).filter(Boolean))]);
+  return pages
+    .map((s) => {
+      const cwd = dirs.get(s.pid) || null;
+      let name = cwd ? path.basename(cwd) : null;
+      try {
+        name = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8')).name || name;
+      } catch {}
+      return { url: s.url, port: s.port, title: s.title, command: s.command || null, name, path: cwd && cwd.replace(os.homedir(), '~') };
+    })
+    .sort((a, b) => a.port - b.port);
+}
+
 const shell = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
 
@@ -115,8 +169,7 @@ const shell = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === '/api/scan') {
-    const found = (await Promise.all(SCAN_PORTS.filter((p) => p !== SHELL_PORT && p !== PROXY_PORT).map(probe))).filter(Boolean);
-    return sendJson(res, 200, found);
+    return sendJson(res, 200, await scanServers());
   }
 
   const file = path.normalize(path.join(PUBLIC_DIR, url.pathname === '/' ? 'index.html' : url.pathname));
@@ -196,6 +249,10 @@ function errorPage(target, err) {
 }
 
 const proxy = http.createServer((req, res) => {
+  if (!state.target) {
+    res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
+    return res.end('DeView: no dev server selected yet. Pick one in the DeView window.');
+  }
   const { t, secure, port } = targetInfo();
   const proxyOrigin = `http://${req.headers.host}`;
   const upstream = (secure ? https : http).request(
@@ -253,6 +310,7 @@ const proxy = http.createServer((req, res) => {
 
 // WebSockets (Vite / Next / webpack HMR): raw TCP pipe with Host + Origin rewritten.
 proxy.on('upgrade', (req, socket, head) => {
+  if (!state.target) return socket.destroy();
   const { t, secure, port } = targetInfo();
   const conn = secure
     ? tls.connect({ host: t.hostname, port, servername: t.hostname, rejectUnauthorized: false })
@@ -282,7 +340,7 @@ proxy.on('upgrade', (req, socket, head) => {
 shell.listen(SHELL_PORT, () => {
   proxy.listen(PROXY_PORT, () => {
     const url = `http://localhost:${SHELL_PORT}`;
-    console.log(`\n  DeView  ${url}\n  proxy   http://localhost:${PROXY_PORT} → ${state.target}\n`);
+    console.log(`\n  DeView  ${url}\n  proxy   http://localhost:${PROXY_PORT} → ${state.target || '(pick a server in the browser)'}\n`);
     if (OPEN) spawn('open', [url], { stdio: 'ignore', detached: true }).unref();
   });
 });

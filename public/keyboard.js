@@ -53,7 +53,7 @@ function iosKeyboard({ kind, hint, multiline, accessory, home }) {
   const bottomStrip = home ? `<div class="kb-strip"><span>${ICON.globe}</span><span>${ICON.mic}</span></div>` : '';
   const extraFn = home ? [k(ICON.emoji, 'fn', 1.2)] : [k(ICON.globe, 'fn', 1.2)];
   const acc = accessory
-    ? `<div class="kb-accessory"><span>${ICON.chevUp}</span><span>${ICON.chevDown}</span><i></i><b>Done</b></div>`
+    ? `<div class="kb-accessory"><span>${ICON.chevUp}</span><span>${ICON.chevDown}</span><i></i><b data-action="done">Done</b></div>`
     : '';
 
   let body;

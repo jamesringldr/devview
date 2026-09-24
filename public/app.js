@@ -3,7 +3,8 @@ import { renderKeyboard, KEYBOARD_KINDS } from './keyboard.js';
 
 const $ = (id) => document.getElementById(id);
 const els = {
-  target: $('target'), targetForm: $('targetForm'), scan: $('scan'), found: $('found'),
+  target: $('target'), targetForm: $('targetForm'), scan: $('scan'),
+  picker: $('picker'), pickerList: $('pickerList'), pickerRefresh: $('pickerRefresh'), pickerForm: $('pickerForm'), pickerUrl: $('pickerUrl'), pickerClose: $('pickerClose'),
   device: $('device'), customSize: $('customSize'), customW: $('customW'), customH: $('customH'),
   browserGroup: $('browserGroup'), browser: $('browser'), theme: $('theme'),
   kbSection: $('kbSection'), kbMode: $('kbMode'), kbBehavior: $('kbBehavior'), zoom: $('zoom'), notes: $('notes'),
@@ -85,6 +86,7 @@ function loadFrame(path = page.path) {
   focused = null;
   pan = 0;
   lastKbMsg = '';
+  if (!server.target) return (els.frame.src = 'about:blank');
   els.frame.src = proxyOrigin + (path.startsWith('/') ? path : '/' + path);
 }
 
@@ -383,9 +385,9 @@ function renderControls() {
 }
 
 function renderAddress() {
-  els.origin.textContent = server.target;
+  els.origin.textContent = server.target || 'No server selected';
   if (document.activeElement !== els.path) els.path.value = page.path;
-  els.openTab.href = server.target + page.path;
+  els.openTab.href = server.target ? server.target + page.path : '#';
   document.title = page.title ? `${page.title} — DeView` : 'DeView';
 }
 
@@ -438,31 +440,26 @@ function initControls() {
     apply();
   };
   els.keyboard.addEventListener('mousedown', (e) => e.preventDefault()); // keep focus in the app
-
-  els.targetForm.onsubmit = async (e) => {
-    e.preventDefault();
-    await pushState({ target: els.target.value });
-    els.target.value = server.target;
-    renderAddress();
-    loadFrame();
-  };
-  els.scan.onclick = async () => {
-    els.scan.textContent = 'Scanning…';
-    const found = await fetch('/api/scan').then((r) => r.json());
-    els.scan.textContent = 'Find running servers';
-    els.found.innerHTML = found.length ? '' : '<span class="muted">Nothing found on common dev ports.</span>';
-    for (const f of found) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = `:${f.port}`;
-      if (f.title) btn.append(Object.assign(document.createElement('span'), { textContent: ` ${f.title.slice(0, 24)}` }));
-      btn.onclick = () => {
-        els.target.value = f.url;
-        els.targetForm.requestSubmit();
-      };
-      els.found.append(btn);
+  els.keyboard.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-action="done"]')) return;
+    toFrame({ type: 'dismiss' });
+    if (prefs.kbMode !== 'auto') {
+      prefs.kbMode = 'auto'; // a forced keyboard would otherwise stay up
+      apply();
     }
+  });
+
+  els.targetForm.onsubmit = (e) => {
+    e.preventDefault();
+    if (els.target.value.trim()) connect(els.target.value);
   };
+  els.pickerForm.onsubmit = (e) => {
+    e.preventDefault();
+    if (els.pickerUrl.value.trim()) connect(els.pickerUrl.value);
+  };
+  els.scan.onclick = openPicker;
+  els.pickerRefresh.onclick = openPicker;
+  els.pickerClose.onclick = closePicker;
 
   els.pathForm.onsubmit = (e) => {
     e.preventDefault();
@@ -478,6 +475,7 @@ function initControls() {
   systemDark.addEventListener('change', () => apply());
 
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !els.picker.hidden) return closePicker();
     if (e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.nodeName)) return;
     const key = e.key.toLowerCase();
     if (key === 'd') {
@@ -498,12 +496,52 @@ function initControls() {
 }
 
 // ---------------------------------------------------------------------------
+// Server picker
+// ---------------------------------------------------------------------------
+
+async function connect(target) {
+  await pushState({ target });
+  els.target.value = server.target;
+  renderAddress();
+  closePicker();
+  loadFrame();
+}
+
+function closePicker() {
+  if (server.target) els.picker.hidden = true; // nothing to show behind it otherwise
+}
+
+const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls, textContent: text ?? '' });
+
+async function openPicker() {
+  els.picker.hidden = false;
+  els.pickerClose.hidden = !server.target;
+  els.pickerList.replaceChildren(el('div', 'muted', 'Scanning local ports…'));
+  const found = await fetch('/api/scan').then((r) => r.json());
+  if (!found.length) return els.pickerList.replaceChildren(el('div', 'muted', 'No local servers serving a web page. Start your dev server and hit Refresh.'));
+  els.pickerList.replaceChildren(
+    ...found.map((s) => {
+      const row = el('button', `server-row${s.url === server.target ? ' current' : ''}`);
+      row.type = 'button';
+      const info = el('div');
+      info.append(el('div', 'name', s.title || s.name || s.url), el('div', 'path', `\u200e${s.path || s.url}\u200e`));
+      if (s.path) info.lastChild.title = s.path;
+      row.append(el('span', 'port', `:${s.port}`), info, el('span', 'cmd', s.command || ''));
+      row.onclick = () => connect(s.url);
+      return row;
+    }),
+  );
+  els.pickerList.querySelector('.server-row')?.focus();
+}
+
+// ---------------------------------------------------------------------------
 
 (async function boot() {
   initControls();
   server = await fetch('/api/state').then((r) => r.json());
   proxyOrigin = `${location.protocol}//${location.hostname}:${server.proxyPort}`;
-  els.target.value = server.target;
+  els.target.value = server.target || '';
   renderAddress();
   apply({ reload: true });
+  if (!server.target) openPicker();
 })();

@@ -3,12 +3,12 @@
 Preview your local dev build inside phone, tablet, and desktop frames — with real-looking browser chrome, the software keyboard, and one-click light/dark forcing. No dependencies.
 
 ```sh
-node server.js            # proxies http://localhost:5173
-node server.js 3000       # or a port / URL: node server.js https://localhost:8443
+node server.js            # opens a picker of local servers (port + project folder)
+node server.js 3000       # or connect straight to a port / URL: node server.js https://localhost:8443
 node server.js --open     # also opens the browser
 ```
 
-Then open **http://localhost:4400**. Change the dev server any time from the sidebar ("Find running servers" scans common dev ports).
+Then open **http://localhost:4400**. Without a target, DeView lists every local port serving a web page (found via `lsof`), with the project folder each dev server runs from. Switch any time with "Choose a running server…" in the sidebar.
 
 ## What it does
 

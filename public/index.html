@@ -17,8 +17,7 @@
           <input id="target" spellcheck="false" autocomplete="off" placeholder="http://localhost:5173" />
           <button>Connect</button>
         </form>
-        <button type="button" id="scan" class="ghost">Find running servers</button>
-        <div id="found" class="chips"></div>
+        <button type="button" id="scan" class="ghost">Choose a running server…</button>
       </section>
 
       <section>
@@ -95,6 +94,26 @@
         </div>
       </div>
       <div class="caption muted" id="caption"></div>
+
+      <div class="picker" id="picker" hidden>
+        <div class="picker-card">
+          <div class="picker-head">
+            <div>
+              <h1>Pick a dev server</h1>
+              <p class="muted">Local ports serving a web page</p>
+            </div>
+            <button type="button" id="pickerRefresh" class="ghost">Refresh</button>
+          </div>
+          <div class="picker-list" id="pickerList"></div>
+          <div class="picker-foot">
+            <form id="pickerForm" class="inline">
+              <input id="pickerUrl" spellcheck="false" autocomplete="off" placeholder="Or type a port / URL, e.g. 3000" />
+              <button>Connect</button>
+            </form>
+            <button type="button" id="pickerClose" class="ghost">Cancel</button>
+          </div>
+        </div>
+      </div>
     </main>
 
     <script type="module" src="app.js"></script>

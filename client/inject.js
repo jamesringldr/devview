@@ -408,6 +408,8 @@
       checkLists();
       applyScrollbars();
       reportSoon();
+    } else if (msg.type === 'dismiss') {
+      document.activeElement?.blur(); // focusout → 'blur' → shell hides the keyboard
     } else if (msg.type === 'history') {
       history.go(msg.delta);
     } else if (msg.type === 'keyboard') {
