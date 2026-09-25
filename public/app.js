@@ -253,7 +253,9 @@ function layout() {
 
   els.deviceEl.className = `device ${hardware && d.frame ? 'frame-' + d.frame : 'bare'}`;
   els.deviceEl.style.setProperty('--r', `${d.radius}px`);
-  Object.assign(els.screen.style, { width: `${d.w}px`, height: `${d.h}px`, background: pageBg });
+  // Page color goes behind the app only; the screen stays black so nothing bleeds at its anti-aliased edges.
+  Object.assign(els.screen.style, { width: `${d.w}px`, height: `${d.h}px`, background: hardware ? '#000' : pageBg });
+  els.viewport.style.background = pageBg;
 
   // browser chrome + status bar
   const chrome = hardware ? chromeFor(d, b, g, dark, pageBg) : { top: '', bottom: '', statusBg: null };
