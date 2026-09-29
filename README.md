@@ -5,10 +5,13 @@ Preview your local dev build inside phone, tablet, and desktop frames — with r
 ```sh
 node server.js            # opens a picker of local servers (port + project folder)
 node server.js 3000       # or connect straight to a port / URL: node server.js https://localhost:8443
+node server.js example.com/pricing   # any site works too (https assumed for non-local hosts)
 node server.js --open     # also opens the browser
 ```
 
-Then open **http://localhost:4400**. Without a target, DeView lists every local port serving a web page (found via `lsof`), with the project folder each dev server runs from. Switch any time with "Choose a running server…" in the sidebar.
+Then open **http://localhost:4400**. Without a target, DeView lists every local port serving a web page (found via `lsof`), with the project folder each dev server runs from. Switch any time with "Choose a running server…" in the sidebar, or type any URL into the Site box.
+
+Live sites go through the same proxy, so theme forcing and the keyboard work there too. DeView strips `X-Frame-Options` / CSP, drops cookie `Domain` attributes so logins stick on localhost, and follows http→https and apex↔www redirects. Links to *other* domains (e.g. an OAuth provider) leave the proxy and may refuse to load in the frame.
 
 ## What it does
 

@@ -28,6 +28,7 @@ const prefs = {
   kbBehavior: 'overlay',
   zoom: 'fit',
   path: '/',
+  target: '', // the target `path` belongs to
   customW: 768,
   customH: 1024,
 };
@@ -78,6 +79,7 @@ function clientConfig() {
 async function pushState(extra = {}) {
   const res = await fetch('/api/state', { method: 'POST', body: JSON.stringify({ config: clientConfig(), ...extra }) });
   server = await res.json();
+  prefs.target = server.target;
 }
 
 const toFrame = (msg) => els.frame.contentWindow?.postMessage({ __deview: true, ...msg }, '*');
@@ -503,6 +505,7 @@ function initControls() {
 
 async function connect(target) {
   await pushState({ target });
+  page.path = prefs.path = server.path;
   els.target.value = server.target;
   renderAddress();
   closePicker();
@@ -543,6 +546,7 @@ async function openPicker() {
   server = await fetch('/api/state').then((r) => r.json());
   proxyOrigin = `${location.protocol}//${location.hostname}:${server.proxyPort}`;
   els.target.value = server.target || '';
+  if (server.target && server.target !== prefs.target) page.path = prefs.path = server.path; // new target from the CLI
   renderAddress();
   apply({ reload: true });
   if (!server.target) openPicker();

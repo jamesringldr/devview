@@ -12,9 +12,9 @@
       <header class="brand"><span class="logo"></span>DeView</header>
 
       <section>
-        <h2>Dev server</h2>
+        <h2>Site</h2>
         <form id="targetForm" class="inline">
-          <input id="target" spellcheck="false" autocomplete="off" placeholder="http://localhost:5173" />
+          <input id="target" spellcheck="false" autocomplete="off" placeholder="localhost:5173 or example.com" />
           <button>Connect</button>
         </form>
         <button type="button" id="scan" class="ghost">Choose a running server…</button>
@@ -74,7 +74,7 @@
           <span id="origin" class="muted"></span>
           <input id="path" spellcheck="false" autocomplete="off" />
         </form>
-        <a id="openTab" class="icon" target="_blank" rel="noopener" title="Open dev server in a new tab">↗</a>
+        <a id="openTab" class="icon" target="_blank" rel="noopener" title="Open in a new tab">↗</a>
       </div>
 
       <div class="canvas" id="canvas">
@@ -107,7 +107,7 @@
           <div class="picker-list" id="pickerList"></div>
           <div class="picker-foot">
             <form id="pickerForm" class="inline">
-              <input id="pickerUrl" spellcheck="false" autocomplete="off" placeholder="Or type a port / URL, e.g. 3000" />
+              <input id="pickerUrl" spellcheck="false" autocomplete="off" placeholder="Or type a port or any URL, e.g. 3000 or example.com" />
               <button>Connect</button>
             </form>
             <button type="button" id="pickerClose" class="ghost">Cancel</button>

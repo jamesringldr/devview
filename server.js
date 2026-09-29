@@ -5,7 +5,7 @@
 //   proxy  http://localhost:4401   your dev server, with the DeView client injected into HTML
 //
 // Usage: node server.js [target] [--port 4400] [--open]
-//   target: a URL (http://localhost:3000) or just a port (3000).
+//   target: a port (3000), a local URL (http://localhost:3000), or any site (example.com/pricing).
 //   Without a target, the shell opens a picker listing local servers.
 
 import http from 'node:http';
@@ -35,18 +35,29 @@ const OPEN = args.includes('--open') && args.splice(args.indexOf('--open'), 1);
 // Fallback when lsof is unavailable.
 const SCAN_PORTS = [3000, 3001, 3002, 4173, 4200, 4321, 5000, 5173, 5174, 5175, 6006, 8000, 8080, 8081, 8888, 19006];
 
-function normalizeTarget(t) {
-  if (!t) return null;
+// → URL. Without a scheme, local hosts (localhost, IPs, dotless names) get http, anything else https.
+function parseTarget(t) {
   t = String(t).trim();
-  if (/^\d+$/.test(t)) return `http://localhost:${t}`;
-  if (!/^https?:\/\//.test(t)) t = `http://${t}`;
-  return new URL(t).origin;
+  if (/^\d+$/.test(t)) t = `localhost:${t}`;
+  if (!/^https?:\/\//.test(t)) {
+    const host = t.split(/[/:?#]/)[0];
+    const local = !host.includes('.') || /\.(localhost|local)$/.test(host) || /^[\d.]+$/.test(host);
+    t = `${local ? 'http' : 'https'}://${t}`;
+  }
+  return new URL(t);
+}
+
+function setTarget(t) {
+  const u = parseTarget(t);
+  state.target = u.origin;
+  state.path = u.pathname + u.search + u.hash; // where the shell starts the frame
 }
 
 // Shared state. The shell POSTs here; the proxy reads it when injecting into HTML
 // and when rewriting request headers (user agent).
 const state = {
-  target: normalizeTarget(args[0] || process.env.DEVIEW_TARGET), // null → shell shows the picker
+  target: null, // null → shell shows the picker
+  path: '/',
   config: {
     theme: 'system', // 'light' | 'dark' | 'system'
     ua: null,
@@ -55,6 +66,8 @@ const state = {
     insets: { top: 0, right: 0, bottom: 0, left: 0 },
   },
 };
+const START = args[0] || process.env.DEVIEW_TARGET;
+if (START) setTarget(START);
 
 // ---------------------------------------------------------------------------
 // Shell server
@@ -159,7 +172,7 @@ const shell = http.createServer(async (req, res) => {
     if (req.method === 'POST') {
       try {
         const body = JSON.parse(await readBody(req));
-        if (body.target) state.target = normalizeTarget(body.target);
+        if (body.target) setTarget(body.target);
         if (body.config) Object.assign(state.config, body.config);
       } catch (e) {
         return sendJson(res, 400, { error: String(e.message || e) });
@@ -251,7 +264,7 @@ function errorPage(target, err) {
 const proxy = http.createServer((req, res) => {
   if (!state.target) {
     res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
-    return res.end('DeView: no dev server selected yet. Pick one in the DeView window.');
+    return res.end('DeView: nothing selected yet. Pick a server or enter a URL in the DeView window.');
   }
   const { t, secure, port } = targetInfo();
   const proxyOrigin = `http://${req.headers.host}`;
@@ -269,10 +282,18 @@ const proxy = http.createServer((req, res) => {
       delete h['x-frame-options'];
       delete h['content-security-policy'];
       delete h['content-security-policy-report-only'];
-      if (h.location) h.location = h.location.replace(t.origin, proxyOrigin);
+      // Cookies scoped to the real domain would be rejected on localhost.
+      if (h['set-cookie']) h['set-cookie'] = h['set-cookie'].map((c) => c.replace(/;\s*domain=[^;]*/i, ''));
 
       const dest = req.headers['sec-fetch-dest'];
       const isDocument = !dest || dest === 'document' || dest === 'iframe';
+      if (h.location) {
+        const loc = new URL(h.location, t.origin);
+        // Follow http→https and apex↔www redirects by switching target, so the frame stays on the proxy.
+        const site = (u) => u.hostname.replace(/^www\./, '');
+        if (isDocument && loc.origin !== t.origin && /^https?:$/.test(loc.protocol) && site(loc) === site(t)) state.target = loc.origin;
+        if (loc.origin === state.target) h.location = proxyOrigin + loc.pathname + loc.search + loc.hash;
+      }
       const isHtml = /text\/html/.test(h['content-type'] || '');
       if (!isHtml || !isDocument || req.method === 'HEAD' || up.statusCode === 204 || up.statusCode === 304) {
         res.writeHead(up.statusCode, h);
@@ -289,7 +310,8 @@ const proxy = http.createServer((req, res) => {
           res.writeHead(up.statusCode, h);
           return res.end(Buffer.concat(chunks));
         }
-        const body = Buffer.from(injectClient(html), 'utf8');
+        // Absolute links to the site itself would navigate the frame off the proxy.
+        const body = Buffer.from(injectClient(html.replaceAll(t.origin, proxyOrigin)), 'utf8');
         delete h['content-encoding'];
         delete h['transfer-encoding'];
         delete h['etag'];
@@ -344,7 +366,7 @@ const openShell = () => OPEN && spawn('open', [SHELL_URL], { stdio: 'ignore', de
 async function onListenError(err) {
   if (err.code !== 'EADDRINUSE') throw err;
   try {
-    const running = await fetch(`${SHELL_URL}/api/state`, state.target ? { method: 'POST', body: JSON.stringify({ target: state.target }) } : {}).then((r) => r.json());
+    const running = await fetch(`${SHELL_URL}/api/state`, START ? { method: 'POST', body: JSON.stringify({ target: START }) } : {}).then((r) => r.json());
     if (!running.proxyPort) throw new Error();
     console.log(`\n  DeView is already running at ${SHELL_URL}${state.target ? ` — switched to ${state.target}` : ''}\n`);
     openShell();
