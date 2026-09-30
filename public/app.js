@@ -53,7 +53,7 @@ const systemDark = matchMedia('(prefers-color-scheme: dark)');
 const isDark = () => (prefs.theme === 'system' ? systemDark.matches : prefs.theme === 'dark');
 
 function device() {
-  const d = DEVICES.find((x) => x.id === prefs.deviceId) || DEVICES[2];
+  const d = DEVICES.find((x) => x.id === prefs.deviceId) || DEVICES.find((x) => x.id === 'iphone-17');
   return d.custom ? { ...d, w: +prefs.customW || 768, h: +prefs.customH || 1024 } : d;
 }
 function browser() {
@@ -419,9 +419,16 @@ function renderNotes() {
 }
 
 function initControls() {
-  const groups = { ios: 'iPhone & iPad', android: 'Android', desktop: 'Desktop' };
-  els.device.innerHTML = Object.entries(groups)
-    .map(([platform, label]) => `<optgroup label="${label}">${DEVICES.filter((d) => d.platform === platform).map((d) => `<option value="${d.id}">${d.name}</option>`).join('')}</optgroup>`)
+  const groups = [
+    ['Most Common', (d) => d.common],
+    ['iPhone & iPad', (d) => !d.common && d.platform === 'ios'],
+    ['Android', (d) => !d.common && d.platform === 'android'],
+    ['Desktop', (d) => d.platform === 'desktop'],
+  ];
+  // Phones: "W × H — models · ~share"
+  const label = (d) => (d.tablet || d.platform === 'desktop' ? d.name : `${d.w} × ${d.h} — ${d.name}${d.share ? ` · ${d.share}` : ''}`);
+  els.device.innerHTML = groups
+    .map(([name, test]) => `<optgroup label="${name}">${DEVICES.filter(test).map((d) => `<option value="${d.id}">${label(d)}</option>`).join('')}</optgroup>`)
     .join('');
   els.device.onchange = () => {
     prefs.deviceId = els.device.value;

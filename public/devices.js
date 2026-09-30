@@ -6,16 +6,24 @@
 // cutout:  'island' | 'notch' | 'punch' | null
 // frame:   'modern' | 'home-button' | null (no bezel)
 
+// common:  listed under "Most Common" (in array order); share: rough slice of that platform's US users
 export const DEVICES = [
-  { id: 'iphone-se', name: 'iPhone SE', platform: 'ios', w: 375, h: 667, radius: 0, status: 20, home: 0, cutout: null, frame: 'home-button' },
-  { id: 'iphone-16e', name: 'iPhone 16e', platform: 'ios', w: 390, h: 844, radius: 47, status: 47, home: 34, cutout: 'notch', frame: 'modern' },
-  { id: 'iphone-17', name: 'iPhone 17 / 17 Pro', platform: 'ios', w: 402, h: 874, radius: 55, status: 62, home: 34, cutout: 'island', frame: 'modern' },
-  { id: 'iphone-air', name: 'iPhone Air', platform: 'ios', w: 420, h: 912, radius: 55, status: 62, home: 34, cutout: 'island', frame: 'modern' },
-  { id: 'iphone-17-pro-max', name: 'iPhone 17 Pro Max', platform: 'ios', w: 440, h: 956, radius: 55, status: 62, home: 34, cutout: 'island', frame: 'modern' },
-  { id: 'pixel-9', name: 'Pixel 9', platform: 'android', w: 412, h: 915, radius: 40, status: 32, home: 24, cutout: 'punch', frame: 'modern' },
-  { id: 'galaxy-s25', name: 'Galaxy S25', platform: 'android', w: 360, h: 780, radius: 34, status: 28, home: 24, cutout: 'punch', frame: 'modern' },
+  { id: 'iphone-16e', name: 'iPhone 12/13/14, 16e/17e', share: '~24% of US iPhones', common: true, platform: 'ios', w: 390, h: 844, radius: 47, status: 47, home: 34, cutout: 'notch', frame: 'modern' },
+  { id: 'iphone-15', name: 'iPhone 15/16, 14 Pro/15 Pro', share: '~21% of US iPhones', common: true, platform: 'ios', w: 393, h: 852, radius: 55, status: 59, home: 34, cutout: 'island', frame: 'modern' },
+  { id: 'android-midrange', name: 'Android midrange (Galaxy A, Moto G)', share: '~50% of US Android', common: true, platform: 'android', w: 360, h: 800, radius: 30, status: 28, home: 24, cutout: 'punch', frame: 'modern' },
+  { id: 'pixel-9', name: 'Pixel 8/9, Galaxy S Ultra', share: '~40% of US Android', common: true, platform: 'android', w: 412, h: 915, radius: 40, status: 32, home: 24, cutout: 'punch', frame: 'modern' },
+  { id: 'iphone-plus', name: 'iPhone 12/13 Pro Max, 14–16 Plus', share: '~12% of US iPhones', common: true, platform: 'ios', w: 428, h: 926, radius: 53, status: 47, home: 34, cutout: 'notch', frame: 'modern' },
+  { id: 'iphone-17', name: 'iPhone 16 Pro, 17 / 17 Pro', share: '~12% of US iPhones', common: true, platform: 'ios', w: 402, h: 874, radius: 55, status: 62, home: 34, cutout: 'island', frame: 'modern' },
+  { id: 'iphone-11', name: 'iPhone 11 / XR class', share: '~9% of US iPhones', common: true, platform: 'ios', w: 414, h: 896, radius: 41, status: 48, home: 34, cutout: 'notch', frame: 'modern' },
+  { id: 'iphone-17-pro-max', name: 'iPhone 16/17 Pro Max', share: '~9% of US iPhones', common: true, platform: 'ios', w: 440, h: 956, radius: 55, status: 62, home: 34, cutout: 'island', frame: 'modern' },
+  { id: 'iphone-15-pro-max', name: 'iPhone 14/15 Pro Max', share: '~6% of US iPhones', platform: 'ios', w: 430, h: 932, radius: 55, status: 59, home: 34, cutout: 'island', frame: 'modern' },
+  { id: 'iphone-se', name: 'iPhone SE 2/3', share: '~3% of US iPhones', platform: 'ios', w: 375, h: 667, radius: 0, status: 20, home: 0, cutout: null, frame: 'home-button' },
+  { id: 'iphone-mini', name: 'iPhone 12/13 mini', share: '~2% of US iPhones', platform: 'ios', w: 375, h: 812, radius: 44, status: 50, home: 34, cutout: 'notch', frame: 'modern' },
+  { id: 'iphone-air', name: 'iPhone Air', share: '~0.4% of US iPhones', platform: 'ios', w: 420, h: 912, radius: 55, status: 62, home: 34, cutout: 'island', frame: 'modern' },
   { id: 'ipad-mini', name: 'iPad mini', platform: 'ios', tablet: true, w: 744, h: 1133, radius: 22, status: 24, home: 20, cutout: null, frame: 'modern' },
   { id: 'ipad-air-11', name: 'iPad Air 11"', platform: 'ios', tablet: true, w: 820, h: 1180, radius: 18, status: 24, home: 20, cutout: null, frame: 'modern' },
+  { id: 'galaxy-s25', name: 'Galaxy S24/S25/S26', platform: 'android', w: 360, h: 780, radius: 34, status: 28, home: 24, cutout: 'punch', frame: 'modern' },
+  { id: 'pixel-7', name: 'Pixel 7 class', platform: 'android', w: 384, h: 832, radius: 36, status: 32, home: 24, cutout: 'punch', frame: 'modern' },
   { id: 'laptop', name: 'Laptop', platform: 'desktop', w: 1280, h: 800, radius: 0, status: 0, home: 0, cutout: null, frame: null },
   { id: 'desktop', name: 'Desktop', platform: 'desktop', w: 1440, h: 900, radius: 0, status: 0, home: 0, cutout: null, frame: null },
   { id: 'custom', name: 'Custom size', platform: 'desktop', w: 768, h: 1024, radius: 0, status: 0, home: 0, cutout: null, frame: null, custom: true },

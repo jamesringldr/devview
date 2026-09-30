@@ -15,7 +15,7 @@ Live sites go through the same proxy, so theme forcing and the keyboard work the
 
 ## What it does
 
-- **Devices** — iPhone SE / 16e / 17 / Air / 17 Pro Max, Pixel 9, Galaxy S25, iPad mini / Air, laptop, desktop, custom size. Edit `public/devices.js` to add more.
+- **Devices** — a *Most Common* group of the 8 phone viewports most US users have (labeled `W × H — models · ~share`), then more iPhone / Android sizes, iPad mini / Air, laptop, desktop, custom size. Edit `public/devices.js` to add more.
 - **Browsers** — iOS: Safari, Chrome, Home Screen app (PWA), viewport only. Android: Chrome, installed app. Each sets the browser chrome, the user agent (JS + request header), and safe-area insets.
 - **Light / Dark / System** — forces `prefers-color-scheme` in CSS media queries *and* `matchMedia()`, live, without reloading. Also flips `color-scheme: light dark` so form controls follow.
 - **Keyboard drawer** — appears when an input is focused, picking the layout from `type` / `inputmode` (text, email, url, search, number, numeric, decimal, tel) and the return key from `enterkeyhint`. Or force one to stay open.
